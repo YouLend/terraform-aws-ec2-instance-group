@@ -283,13 +283,19 @@ variable "instance_count" {
 }
 
 variable "hibernation" {
-  default = false
+  default     = false
   description = "this will all for hibernation"
 }
 
 variable "permissions_boundary_arn" {
   type        = string
   description = "Policy ARN to attach to instance role as a permissions boundary"
+  default     = ""
+}
+
+variable "iam_instance_profile_name" {
+  type        = string
+  description = "Name of an existing IAM instance profile to attach to the EC2 instances. When set, no IAM role or instance profile will be created by this module"
   default     = ""
 }
 

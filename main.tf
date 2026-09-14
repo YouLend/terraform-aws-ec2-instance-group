@@ -1,13 +1,15 @@
 locals {
-  instance_count         = module.this.enabled ? var.instance_count : 0
-  region                 = var.region != "" ? var.region : data.aws_region.default.name
-  root_iops              = var.root_volume_type == "io1" || var.root_volume_type == "gp3" ? var.root_iops : 0
-  ebs_iops               = var.ebs_volume_type == "gp3" ? var.ebs_iops : 0
-  availability_zone      = var.availability_zone
-  root_volume_type       = var.root_volume_type != "" ? var.root_volume_type : data.aws_ami.info.root_device_type
-  count_default_ips      = var.associate_public_ip_address && var.assign_eip_address && module.this.enabled ? var.instance_count : 0
-  ssh_key_pair_path      = var.ssh_key_pair_path == "" ? path.cwd : var.ssh_key_pair_path
-  security_group_enabled = module.this.enabled && var.security_group_enabled
+  instance_count              = module.this.enabled ? var.instance_count : 0
+  region                      = var.region != "" ? var.region : data.aws_region.default.name
+  root_iops                   = var.root_volume_type == "io1" || var.root_volume_type == "gp3" ? var.root_iops : 0
+  ebs_iops                    = var.ebs_volume_type == "gp3" ? var.ebs_iops : 0
+  availability_zone           = var.availability_zone
+  root_volume_type            = var.root_volume_type != "" ? var.root_volume_type : data.aws_ami.info.root_device_type
+  count_default_ips           = var.associate_public_ip_address && var.assign_eip_address && module.this.enabled ? var.instance_count : 0
+  ssh_key_pair_path           = var.ssh_key_pair_path == "" ? path.cwd : var.ssh_key_pair_path
+  security_group_enabled      = module.this.enabled && var.security_group_enabled
+  create_iam_instance_profile = var.iam_instance_profile_name == ""
+  instance_profile_name       = local.create_iam_instance_profile ? join("", aws_iam_instance_profile.default.*.name) : var.iam_instance_profile_name
 }
 
 locals {
@@ -66,13 +68,13 @@ module "label" {
 }
 
 resource "aws_iam_instance_profile" "default" {
-  count = signum(local.instance_count)
+  count = local.create_iam_instance_profile ? signum(local.instance_count) : 0
   name  = module.label.id
   role  = join("", aws_iam_role.default.*.name)
 }
 
 resource "aws_iam_role" "default" {
-  count                = signum(local.instance_count)
+  count                = local.create_iam_instance_profile ? signum(local.instance_count) : 0
   name                 = module.label.id
   path                 = "/"
   assume_role_policy   = data.aws_iam_policy_document.default.json
@@ -89,16 +91,16 @@ resource "aws_instance" "default" {
   ebs_optimized               = var.ebs_optimized
   disable_api_termination     = var.disable_api_termination
   user_data                   = var.user_data
-  iam_instance_profile        = join("", aws_iam_instance_profile.default.*.name)
+  iam_instance_profile        = local.instance_profile_name
   associate_public_ip_address = var.associate_public_ip_address
   key_name                    = var.ssh_key_pair
   subnet_id                   = var.subnet
   monitoring                  = var.monitoring
   #private_ip                  = concat(var.private_ips, [""])[min(length(var.private_ips), count.index)]
-  source_dest_check           = var.source_dest_check
-  ipv6_address_count          = var.ipv6_address_count < 0 ? null : var.ipv6_address_count
-  ipv6_addresses              = length(var.ipv6_addresses) > 0 ? var.ipv6_addresses : null
-  vpc_security_group_ids      = compact(concat(module.security_group.*.id, var.security_groups))
+  source_dest_check      = var.source_dest_check
+  ipv6_address_count     = var.ipv6_address_count < 0 ? null : var.ipv6_address_count
+  ipv6_addresses         = length(var.ipv6_addresses) > 0 ? var.ipv6_addresses : null
+  vpc_security_group_ids = compact(concat(module.security_group.*.id, var.security_groups))
 
   root_block_device {
     volume_type           = local.root_volume_type
@@ -122,7 +124,7 @@ resource "aws_instance" "default" {
   )
   lifecycle {
     ignore_changes = [user_data, ami, subnet_id, ebs_optimized, hibernation, tags["ScheduleMessage"], tags_all["ScheduleMessage"], tags["LocalHostName"], tags_all["LocalHostName"]]
-  }    
+  }
 }
 
 ##

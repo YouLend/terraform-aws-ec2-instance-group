@@ -73,6 +73,11 @@ output "role_names" {
   value       = compact(aws_iam_role.default.*.name)
 }
 
+output "instance_profile_name" {
+  description = "Name of the IAM instance profile used by the instances (either created by this module or the existing one provided)"
+  value       = local.instance_profile_name
+}
+
 output "alarm_ids" {
   description = "CloudWatch Alarm IDs"
   value       = aws_cloudwatch_metric_alarm.default.*.id
