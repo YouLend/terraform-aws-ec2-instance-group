@@ -328,3 +328,9 @@ variable "ebs_volume_encrypted" {
   description = "Size of the EBS volume in gigabytes"
   default     = true
 }
+
+variable "create_alarm" {
+  description = "Whether to create the default CloudWatch instance alarm"
+  type        = bool
+  default     = true
+}
