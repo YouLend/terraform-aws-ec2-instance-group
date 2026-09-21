@@ -5,7 +5,7 @@ locals {
 }
 
 resource "aws_cloudwatch_metric_alarm" "default" {
-  count               = local.instance_count
+  count               = var.create_alarm ? local.instance_count : 0
   alarm_name          = "${module.label.id}-${count.index}"
   comparison_operator = var.comparison_operator
   evaluation_periods  = var.evaluation_periods
